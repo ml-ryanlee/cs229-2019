@@ -1,38 +1,10 @@
 import numpy as np
+import sys
 from numpy.linalg import norm
 from numpy.linalg import inv
 import util
 
 #where to put these functions? We might want to call them later if we have a clf object?
-def sigmoid(z):
-        """ return the output of the sigmoid function
-        Args:
-            z: vector input. Shape (m,).
-
-        Returns: 
-            sigmoid(z): vector output. Shame (m,).
-        """
-        return 1/(1+np.exp(-z)) #exp is a vectorized. if z is large, exp(-z) -> inf
-    
-def gradient(X,y,theta):
-        """ return the gradient of the loss of logistic regression, given an X,y,and theta
-        Args:
-            X: matrix input. Shape (m,n).
-            y: vector input. Shape (m,)
-            theta: vector input. Shape (m,)
-
-        Returns: 
-            gradient: gradient given X,y,theta. Shape (n,)
-        """
-        m = len(X)
-        #vectorized gradient (nx1 size)
-        return -(1/m)*(X.T)@(y-sigmoid(X@theta)) #@ is the matrix multiplication operator
-
-def hessian(X,theta):
-        m = len(X)
-        z = X@theta
-        #vectorized hessian (nxn size)
-        return (1/m)*(sigmoid(z.T)@(1-sigmoid(z)))*X.T@X
 
 def main(train_path, eval_path, pred_path):
     """Problem 1(b): Logistic regression with Newton's Method.
@@ -50,10 +22,18 @@ def main(train_path, eval_path, pred_path):
     # Use np.savetxt to save predictions on eval set to pred_path
 
     X_eval, y_eval = util.load_dataset(eval_path, add_intercept = True)
-
     clf = LogisticRegression()
+    print('1. shape of X_eval ',X_eval.shape)
+    print('1. shape of y_eval ',y_eval.shape)
     clf.fit(X_train,y_train)
-    y_predict = clf.predict(X_eval) 
+    print('2. shape of X_eval ',X_eval.shape)
+    print('2. shape of y_eval ',y_eval.shape)
+    util.plot(X_eval, y_eval, clf.theta, 'output')
+    y_predict = clf.predict(X_eval)
+    print('2. shape of y_predict: ', y_predict.shape)
+
+
+    
     np.savetxt(pred_path, y_predict) #only writing out the predictions, but not the x_evals?
     
     # *** END CODE HERE ***
@@ -82,7 +62,7 @@ class LogisticRegression:
         self.max_iter = max_iter
         self.eps = eps
         self.verbose = verbose
-
+    
 
     def fit(self, X, y):
         """Run Newton's Method to minimize J(theta) for logistic regression.
@@ -92,19 +72,47 @@ class LogisticRegression:
             y: Training example labels. Shape (m,).
         """
         # *** START CODE HERE ***
-        theta = self.theta
+        def sigmoid(z):
+            return 1/(1+np.exp(-z)) #sigmoid(z): vector output. Shape (m,).
+
+        # (nx1) gradient definition
+        def gradient(X,y,theta):
+            m = len(X)
+            z = X@theta
+            return -(1/m)*(X.T)@(y-sigmoid(X@theta)) 
+        
+        # (nxn) hessian definition
+        def hessian(X,theta):
+            m = len(X)
+            z = X@theta
+            hessian_scalar = ((1/m)*(sigmoid(z.T)))@(1-sigmoid(z))
+            return np.multiply(hessian_scalar, (X.T@X))
+       
+        # define Theta, y for fit as vectors of size (n,1) and (m,1) respectively
+        n = X.shape[1]
+        y = np.asmatrix(y).T #becomes a mx1 column vector.
+
+        if self.theta == None:
+            theta = np.zeros((n,1)) #None interpreted as col vector of zeros (nx1)
+        elif (self.theta).shape == (n,1):
+             theta = self.theta
+        else:
+            print('error: must specify theta as None or vector of size Nx1')
+            sys.exit(1)
+        
+        # set a convergence flag to determine if convergence has been reached
         convergence_flag = False
 
-        #PSEUDOCODE: LEARN THE WEIGHTS or THETAS BASED ON X, Y. 
-        for iter in range(self.max_iter):        # until maximum iteration step, solve for thetas
+        # Newton's Method
+        for iter in range(self.max_iter):
             # 1. calculate the gradient given theta
-            gradient = gradient(X,y,theta)
+            grad = gradient(X,y,theta)
 
             # 2. calculate the Hessian
-            hessian = hessian(X,theta)
+            H = hessian(X,theta)
 
             # 3. update theta's with Newton's method theta -   
-            theta_new = theta - inv(hessian)@gradient
+            theta_new = theta - inv(H)@grad
             
             # 4. if the L1 norm of difference new theta and old theta is < eps, break loop
             if norm((theta-theta_new),1) < self.eps: convergence_flag = True; break
@@ -115,7 +123,6 @@ class LogisticRegression:
         # 6. after solving for thetas, store thetas in self.theta, if convergence has been reached.
         if convergence_flag:
              self.theta = theta
-             print('convergence reached !!! theta is: ',self.theta)
         else:
              print('Convergence not reached, thetas have not been updated !!! theta is ', self.theta)
         return
@@ -133,9 +140,14 @@ class LogisticRegression:
         # *** START CODE HERE ***
         ## PSEUDO CODE
         # 1. z is the linear combination of X (mxn) and theta (nx1) a mx1 vector
+        
+        def sigmoid(z):
+            return 1/(1+np.exp(-z)) #sigmoid(z): vector output. Shape (m,).
+        
         z = X@self.theta # a vector
 
         # 2. logistic regression is defined by a probability with sigmoid function and z
+        print('shape of y_predict ', sigmoid(z).shape)
         y_predict = sigmoid(z)
 
         # 3. return the y prediction (mx1)
