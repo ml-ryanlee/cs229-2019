@@ -4,7 +4,22 @@ from numpy.linalg import norm
 from numpy.linalg import inv
 import util
 
-#where to put these functions? We might want to call them later if we have a clf object?
+
+def sigmoid(z):
+     return 1/(1+np.exp(-z)) #sigmoid(z): vector output. Shape (m,).
+
+# (nx1) gradient definition
+def gradient(X,y,theta):
+    m = len(X)
+    z = X@theta
+    return -(1/m)*(X.T)@(y-sigmoid(X@theta)) 
+        
+# (nxn) hessian definition
+def hessian(X,theta):
+    m = len(X)
+    z = X@theta
+    hessian_scalar = ((1/m)*(sigmoid(z.T)))@(1-sigmoid(z))
+    return np.multiply(hessian_scalar, (X.T@X))
 
 def main(train_path, eval_path, pred_path):
     """Problem 1(b): Logistic regression with Newton's Method.
@@ -24,16 +39,14 @@ def main(train_path, eval_path, pred_path):
     X_eval, y_eval = util.load_dataset(eval_path, add_intercept = True)
     clf = LogisticRegression()
     print('1. shape of X_eval ',X_eval.shape)
-    print('1. shape of y_eval ',y_eval.shape)
-    clf.fit(X_train,y_train)
-    print('2. shape of X_eval ',X_eval.shape)
     print('2. shape of y_eval ',y_eval.shape)
-    util.plot(X_eval, y_eval, clf.theta, 'output')
+    clf.fit(X_train,y_train)
+    print('3. shape of X_eval ',X_eval.shape)
+    print('4. shape of y_eval ',y_eval.shape)
     y_predict = clf.predict(X_eval)
-    print('2. shape of y_predict: ', y_predict.shape)
-
-
-    
+    print('5. shape of y_predict: ', y_predict.shape)
+    print('size of clf.theta ', clf.theta.shape)
+    util.plot(X_eval, y_eval, clf.theta, pred_path)
     np.savetxt(pred_path, y_predict) #only writing out the predictions, but not the x_evals?
     
     # *** END CODE HERE ***
@@ -72,25 +85,10 @@ class LogisticRegression:
             y: Training example labels. Shape (m,).
         """
         # *** START CODE HERE ***
-        def sigmoid(z):
-            return 1/(1+np.exp(-z)) #sigmoid(z): vector output. Shape (m,).
-
-        # (nx1) gradient definition
-        def gradient(X,y,theta):
-            m = len(X)
-            z = X@theta
-            return -(1/m)*(X.T)@(y-sigmoid(X@theta)) 
-        
-        # (nxn) hessian definition
-        def hessian(X,theta):
-            m = len(X)
-            z = X@theta
-            hessian_scalar = ((1/m)*(sigmoid(z.T)))@(1-sigmoid(z))
-            return np.multiply(hessian_scalar, (X.T@X))
        
         # define Theta, y for fit as vectors of size (n,1) and (m,1) respectively
         n = X.shape[1]
-        y = np.asmatrix(y).T #becomes a mx1 column vector.
+        #y = np.asmatrix(y).T #becomes a mx1 column vector.
 
         if self.theta == None:
             theta = np.zeros((n,1)) #None interpreted as col vector of zeros (nx1)
@@ -106,12 +104,12 @@ class LogisticRegression:
         # Newton's Method
         for iter in range(self.max_iter):
             # 1. calculate the gradient given theta
-            grad = gradient(X,y,theta)
+            grad = gradient(X,(np.asmatrix(y).T),theta)
 
             # 2. calculate the Hessian
             H = hessian(X,theta)
 
-            # 3. update theta's with Newton's method theta -   
+            # 3. update theta's with Newton's method
             theta_new = theta - inv(H)@grad
             
             # 4. if the L1 norm of difference new theta and old theta is < eps, break loop
@@ -122,7 +120,7 @@ class LogisticRegression:
 
         # 6. after solving for thetas, store thetas in self.theta, if convergence has been reached.
         if convergence_flag:
-             self.theta = theta
+             self.theta = np.resize(theta,(n,))
         else:
              print('Convergence not reached, thetas have not been updated !!! theta is ', self.theta)
         return
@@ -139,18 +137,16 @@ class LogisticRegression:
         """
         # *** START CODE HERE ***
         ## PSEUDO CODE
+        
         # 1. z is the linear combination of X (mxn) and theta (nx1) a mx1 vector
-        
-        def sigmoid(z):
-            return 1/(1+np.exp(-z)) #sigmoid(z): vector output. Shape (m,).
-        
         z = X@self.theta # a vector
-
+        
         # 2. logistic regression is defined by a probability with sigmoid function and z
-        print('shape of y_predict ', sigmoid(z).shape)
-        y_predict = sigmoid(z)
-
-        # 3. return the y prediction (mx1)
+        y_predict = np.resize(sigmoid(z),(len(X),))
+        
+        #y_predict = np.reshape(y_predict, X.shape[0])
+        #print('4.5 shape of y_predict AFTER resize X, y_predict.shape', y_predict.shape)
+        # 3. return the y prediction (m,)
         return y_predict
         # *** END CODE HERE ***
 
