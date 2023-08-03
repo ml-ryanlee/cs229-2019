@@ -4,23 +4,25 @@ from numpy.linalg import norm
 from numpy.linalg import inv
 import util
 
-
+# sigmoid function
 def sigmoid(z):
      return 1/(1+np.exp(-z)) #sigmoid(z): vector output. Shape (m,).
 
-# (nx1) gradient definition
+# (dx1) gradient definition
 def gradient(X,y,theta):
     m = len(X)
     z = X@theta
+    y = (np.asmatrix(y).T)
     return -(1/m)*(X.T)@(y-sigmoid(X@theta)) 
         
-# (nxn) hessian definition
+# (dxd) hessian definition
 def hessian(X,theta):
     m = len(X)
     z = X@theta
     hessian_scalar = ((1/m)*(sigmoid(z.T)))@(1-sigmoid(z))
     return np.multiply(hessian_scalar, (X.T@X))
 
+# main function, called by run.py
 def main(train_path, eval_path, pred_path):
     """Problem 1(b): Logistic regression with Newton's Method.
 
@@ -38,14 +40,8 @@ def main(train_path, eval_path, pred_path):
 
     X_eval, y_eval = util.load_dataset(eval_path, add_intercept = True)
     clf = LogisticRegression()
-    print('1. shape of X_eval ',X_eval.shape)
-    print('2. shape of y_eval ',y_eval.shape)
     clf.fit(X_train,y_train)
-    print('3. shape of X_eval ',X_eval.shape)
-    print('4. shape of y_eval ',y_eval.shape)
     y_predict = clf.predict(X_eval)
-    print('5. shape of y_predict: ', y_predict.shape)
-    print('size of clf.theta ', clf.theta.shape)
     util.plot(X_eval, y_eval, clf.theta, pred_path)
     np.savetxt(pred_path, y_predict) #only writing out the predictions, but not the x_evals?
     
@@ -95,7 +91,7 @@ class LogisticRegression:
         elif (self.theta).shape == (n,1):
              theta = self.theta
         else:
-            print('error: must specify theta as None or vector of size Nx1')
+            print('error: must specify theta as None or vector of size nx1')
             sys.exit(1)
         
         # set a convergence flag to determine if convergence has been reached
@@ -104,7 +100,7 @@ class LogisticRegression:
         # Newton's Method
         for iter in range(self.max_iter):
             # 1. calculate the gradient given theta
-            grad = gradient(X,(np.asmatrix(y).T),theta)
+            grad = gradient(X,y,theta)
 
             # 2. calculate the Hessian
             H = hessian(X,theta)
@@ -144,8 +140,6 @@ class LogisticRegression:
         # 2. logistic regression is defined by a probability with sigmoid function and z
         y_predict = np.resize(sigmoid(z),(len(X),))
         
-        #y_predict = np.reshape(y_predict, X.shape[0])
-        #print('4.5 shape of y_predict AFTER resize X, y_predict.shape', y_predict.shape)
         # 3. return the y prediction (m,)
         return y_predict
         # *** END CODE HERE ***
