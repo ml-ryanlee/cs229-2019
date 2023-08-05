@@ -11,7 +11,6 @@ def sigmoid(z):
 # (dx1) gradient definition
 def gradient(X,y,theta):
     m = len(X)
-    z = X@theta
     y = (np.asmatrix(y).T)
     return -(1/m)*(X.T)@(y-sigmoid(X@theta)) 
         
@@ -44,9 +43,9 @@ def main(train_path, eval_path, pred_path):
     y_predict = clf.predict(X_eval)
     util.plot(X_eval, y_eval, clf.theta, pred_path)
     np.savetxt(pred_path, y_predict) #only writing out the predictions, but not the x_evals?
-    
+    y_predict_labels = (y_predict>0.5).astype(int)
+    print('LR accuracy: ', sum(y_predict_labels == y_eval)/len(y_eval))
     # *** END CODE HERE ***
-
 
 class LogisticRegression:
     """Logistic regression with Newton's Method as the solver.
@@ -72,7 +71,6 @@ class LogisticRegression:
         self.eps = eps
         self.verbose = verbose
     
-
     def fit(self, X, y):
         """Run Newton's Method to minimize J(theta) for logistic regression.
 
@@ -84,8 +82,6 @@ class LogisticRegression:
        
         # define Theta, y for fit as vectors of size (n,1) and (m,1) respectively
         n = X.shape[1]
-        #y = np.asmatrix(y).T #becomes a mx1 column vector.
-
         if self.theta == None:
             theta = np.zeros((n,1)) #None interpreted as col vector of zeros (nx1)
         elif (self.theta).shape == (n,1):
