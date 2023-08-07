@@ -27,34 +27,27 @@ def main(train_path, valid_path, test_path, pred_path):
 
     # *** START CODE HERE ***
     # Part (c): Train and test on true labels
-
-    model = LogisticRegression()
-    train_x, train_t = util.load_dataset(train_path,label_col="t", add_intercept=True)
-    model.fit(train_x, train_t)
-    val_x, val_y = util.load_dataset(valid_path, label_col='t', add_intercept=True)
-    y_pred = model.predict(val_x)
-    np.savetxt(pred_path_c, y_pred)
-    util.plot(val_x, val_y, model.theta, 'output')
     # Make sure to save outputs to pred_path_c
-
-
     # Part (d): Train on y-labels and test on true labels
-    train_x, train_y = util.load_dataset(train_path, label_col='y', add_intercept=True)
-    model.fit(train_x, train_y)
-    val_x, val_y = util.load_dataset(valid_path, label_col='t', add_intercept=True)
-    y_pred = model.predict(val_x)
-    np.savetxt(pred_path_d, y_pred)
-    util.plot(val_x, val_y, model.theta, 'output')
     # Make sure to save outputs to pred_path_d
-
-
     # Part (e): Apply correction factor using validation set and test on true labels
     # Plot and use np.savetxt to save outputs to pred_path_e
-    test_x, test_t = util.load_dataset(test_path, label_col="t", add_intercept=True)
-    y_pred = model.predict1(val_x)
-    alpha = np.sum(y_pred[val_y==1]) / np.sum(val_y)
-    y_pred = model.predict2(test_x, alpha)
-    np.savetxt(pred_path_e, y_pred)
-    model.theta[0] -= np.log(alpha/(2-alpha))
-    util.plot(test_x, test_t, model.theta, 'output')
-    # *** END CODER HERE
+   
+    #part (a) train logistic regression on true labels t
+    X_train, t_train = util.load_dataset(train_path,label_col='t', add_intercept=True)
+    X_test, y_test = util.load_dataset(test_path,label_col='t', add_intercept=True)
+    clf = LogisticRegression()
+    clf.fit(X_train,t_train)
+    y_predict = clf.predict(X_test)
+    util.plot(X_test, y_test, clf.theta, pred_path)
+
+    #part (b) train logreg on y labels
+    X_train, y_train = util.load_dataset(train_path,label_col='y', add_intercept=True)
+    X_test, y_test = util.load_dataset(test_path,label_col='t', add_intercept=True)
+    clf_y = LogisticRegression()
+    clf_y.fit(X_train,y_train)
+    y_predict_on_y = clf_y.predict(X_test)
+    np.savetxt(pred_path, y_predict_on_y) 
+    util.plot(X_test,y_test,clf_y.theta,pred_path)
+
+    # *** END CODE HERE
