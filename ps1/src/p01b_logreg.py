@@ -55,7 +55,7 @@ class LogisticRegression(LinearModel):
             grad = -1/m*(x.T@(y-h_x))
             assert(grad.shape == (n,))
 
-            # 2. define hessian (use of advanced broadcasting/elementwise operations)
+            # 2. define hessian (use of broadcasting/elementwise operations)
             hess = (x.T * (h_x*(1-h_x)))@x/m
             assert(hess.shape == (n,n))
 
