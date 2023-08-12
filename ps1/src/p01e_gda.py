@@ -17,6 +17,13 @@ def binom_normality(X,y):
     print('GDA p-value for normality test of X|Y=1 is: ', resX0.pvalue)
     return
 
+def transform_X(X_in,dim):
+    X_new = np.copy(X_in)
+    # remove negative examples before taking log
+    # print('dim_value: ',dim,(X_new[:,dim]))
+    # print(np.log(X_new[:,dim]))
+    X_new[:,dim] = np.log(X_new[:,dim])
+    return X_new
 
 def main(train_path, eval_path, pred_path):
     """Problem 1(e): Gaussian discriminant analysis (GDA)
@@ -33,9 +40,17 @@ def main(train_path, eval_path, pred_path):
     # Train a GDA classifier
     # Plot decision boundary on validation set
     # Use np.savetxt to save outputs from validation set to pred_path
-
+    
     X_eval, y_eval = util.load_dataset(eval_path,add_intercept = True)
     clf = GDA()
+    
+    # for problem 1h: transform training and evaluation data to normalize:
+    # X_train_mod = transform_X(np.copy(X_train),1)
+    # X_eval_mod = transform_X(np.copy(X_eval),2) # why 2? Remember, we add offset col after fitting theta0 with training
+    # clf.fit(X_train_mod,y_train)
+    # y_predict = clf.predict(X_eval_mod)
+
+    # fit the model and predict
     clf.fit(X_train,y_train)
     y_predict = clf.predict(X_eval)
 
@@ -83,12 +98,11 @@ class GDA:
         """
         # *** START CODE HERE ***
         # Notes:
-        # 1. definme MLE estimators for ∑, µ_0, µ_1, phi
+        # 1. define MLE estimators for ∑, µ_0, µ_1, phi
         # 2. define theta0 and theta1 with MLE estimators
         
         # define shape of X input
-        m = len(y)
-        n = X.shape[1]
+        m, n = X.shape
 
         # reshape y for matrix multiplication
         if self.theta == None:
@@ -104,7 +118,7 @@ class GDA:
         y0 = np.asmatrix(np.logical_not(y).astype(int)).T
        
         # MLE estimators
-        phi = sum(y)/len(y) # scalar
+        phi = sum(y)/m # scalar
         mu0 = 1/sum(y)*X.T@y0 # nx1
         mu1 = 1/sum(y)*X.T@y1 # nx1
     
