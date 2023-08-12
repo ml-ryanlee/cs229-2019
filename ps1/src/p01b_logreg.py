@@ -5,8 +5,6 @@ from linear_model import LinearModel
 from numpy.linalg import inv
 from numpy.linalg import norm
 
-def g(z):
-    return 1/(1+np.exp(-z))
 
 def main(train_path, eval_path, pred_path):
     """Problem 1(b): Logistic regression with Newton's Method.
@@ -82,5 +80,5 @@ class LogisticRegression(LinearModel):
         """
         # *** START CODE HERE ***
         z = x@self.theta
-        return g(x@self.theta)
+        return 1/(1+np.exp(-z))
         # *** END CODE HERE ***
