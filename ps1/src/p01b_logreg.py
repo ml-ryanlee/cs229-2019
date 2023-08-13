@@ -21,7 +21,7 @@ def main(train_path, eval_path, pred_path):
     clf = LogisticRegression()
     clf.fit(x_train,y_train)
     clf.predict(x_eval)
-    util.plot(x_eval,y_eval,clf.theta,pred_path)
+    util.plot(x_eval,y_eval,clf.theta,pred_path,correction=1.0)
     # *** END CODE HERE ***
 
 
@@ -83,6 +83,19 @@ class LogisticRegression(LinearModel):
         h_x = (p_x>0.5).astype(int)
         return h_x
         # *** END CODE HERE ***
+    
+    def predict_prob(self, x):
+        """Make a prediction given new inputs x.
 
+        Args:
+            x: Inputs of shape (m, n).
+
+        Returns:
+            Outputs of shape (m,).
+        """
+        # *** START CODE HERE ***
+        return 1/(1+np.exp(-x@self.theta))
+        # *** END CODE HERE ***
+    
 def accuracy(predict, y):
     return sum(predict==y)/len(y)

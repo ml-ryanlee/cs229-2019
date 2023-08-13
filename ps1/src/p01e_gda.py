@@ -24,7 +24,7 @@ def main(train_path, eval_path, pred_path):
     predict = clf.predict(x_eval)
     binom_normality(x_eval,y_eval)
     print('validation GDA accuracy: ', accuracy(predict,y_eval))
-    util.plot(x_eval, y_eval, clf.theta, pred_path)
+    util.plot(x_eval, y_eval, clf.theta, pred_path,correction=1.0)
 
     # for part (g) transform the second feature of x by taking log(x2)
     # x_train_tf = np.copy(x_train)
@@ -38,7 +38,7 @@ def main(train_path, eval_path, pred_path):
     # predict_tf = clf_tf.predict(x_eval_tf)
     # binom_normality(x_eval_tf,y_eval)
     # print('validation GDA accuracy, transformed DS: ', accuracy(predict_tf,y_eval))
-    # util.plot(x_eval_tf, y_eval, clf_tf.theta, pred_path)
+    # util.plot(x_eval_tf, y_eval, clf_tf.theta, pred_path,correction=1.0)
     # *** END CODE HERE ***
 
 

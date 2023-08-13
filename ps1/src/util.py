@@ -60,7 +60,7 @@ def load_dataset(csv_path, label_col='y', add_intercept=False):
     return inputs, labels
 
 
-def plot(x, y, theta, save_path, correction=1.0):
+def plot(x, y, theta, save_path, correction):
     """Plot dataset and fitted logistic regression parameters.
 
     Args:
