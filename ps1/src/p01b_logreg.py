@@ -42,7 +42,7 @@ class LogisticRegression(LinearModel):
             y: Training example labels. Shape (m,).
         """
         # *** START CODE HERE ***
-        # 0. initialize theta to (n,) 1-D zero array if 'None'
+        # 0. initialize theta to ((n,) 1-D zero array if 'None'
         if self.theta == None: self.theta = np.zeros(x.shape[1])
     
         # iterate until convergence
