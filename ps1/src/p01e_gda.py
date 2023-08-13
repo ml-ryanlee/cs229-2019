@@ -14,7 +14,7 @@ def main(train_path, eval_path, pred_path):
         eval_path: Path to CSV file containing dataset for evaluation.
         pred_path: Path to save predictions.
     """
-    # Load dataset
+    # Load datasets
     x_train, y_train = util.load_dataset(train_path, add_intercept=False)
     x_eval,y_eval = util.load_dataset(eval_path,add_intercept = True)
    
@@ -26,19 +26,19 @@ def main(train_path, eval_path, pred_path):
     print('validation GDA accuracy: ', accuracy(predict,y_eval))
     util.plot(x_eval, y_eval, clf.theta, pred_path)
 
-    # for part g) transform the second feature of x by taking log(x2)
-    x_train_tf = np.copy(x_train)
-    x_eval_tf = np.copy(x_eval)
+    # for part (g) transform the second feature of x by taking log(x2)
+    # x_train_tf = np.copy(x_train)
+    # x_eval_tf = np.copy(x_eval)
 
-    x_train_tf[:,1] = np.log(x_train_tf[:,1])
-    x_eval_tf[:,2] = np.log(x_eval_tf[:,2])
+    # x_train_tf[:,1] = np.log(x_train_tf[:,1])
+    # x_eval_tf[:,2] = np.log(x_eval_tf[:,2])
 
-    clf_tf = GDA()
-    clf_tf.fit(x_train_tf,y_train)
-    predict_tf = clf_tf.predict(x_eval_tf)
-    binom_normality(x_eval_tf,y_eval)
-    print('validation GDA accuracy, transformed DS: ', accuracy(predict_tf,y_eval))
-    util.plot(x_eval_tf, y_eval, clf_tf.theta, pred_path)
+    # clf_tf = GDA()
+    # clf_tf.fit(x_train_tf,y_train)
+    # predict_tf = clf_tf.predict(x_eval_tf)
+    # binom_normality(x_eval_tf,y_eval)
+    # print('validation GDA accuracy, transformed DS: ', accuracy(predict_tf,y_eval))
+    # util.plot(x_eval_tf, y_eval, clf_tf.theta, pred_path)
     # *** END CODE HERE ***
 
 

@@ -79,6 +79,10 @@ class LogisticRegression(LinearModel):
             Outputs of shape (m,).
         """
         # *** START CODE HERE ***
-        z = x@self.theta
-        return 1/(1+np.exp(-z))
+        p_x = 1/(1+np.exp(-x@self.theta))
+        h_x = (p_x>0.5).astype(int)
+        return h_x
         # *** END CODE HERE ***
+
+def accuracy(predict, y):
+    return sum(predict==y)/len(y)
