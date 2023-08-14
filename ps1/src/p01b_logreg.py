@@ -21,7 +21,7 @@ def main(train_path, eval_path, pred_path):
     clf = LogisticRegression()
     clf.fit(x_train,y_train)
     clf.predict(x_eval)
-    util.plot(x_eval,y_eval,clf.theta,pred_path,correction=1.0)
+    util.plot(x_eval,y_eval,clf.theta,pred_path)
     # *** END CODE HERE ***
 
 

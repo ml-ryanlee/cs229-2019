@@ -1,9 +1,9 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import util
-import random
 
 from linear_model import LinearModel
-
+from numpy.linalg import norm
 
 def main(lr, train_path, eval_path, pred_path):
     """Problem 3(d): Poisson regression with gradient ascent.
@@ -16,13 +16,21 @@ def main(lr, train_path, eval_path, pred_path):
     """
     # Load training set
     x_train, y_train = util.load_dataset(train_path, add_intercept=False)
-    model = PoissonRegression()
-    model.fit(x_train, y_train, iter=10000)
-    x_val, y_val = util.load_dataset(eval_path, add_intercept=False)
-    y_pred = model.predict(x_val)
-    np.savetxt(pred_path, y_pred)
+    x_eval, y_eval = util.load_dataset(eval_path, add_intercept=False)
+    
+    # *** START CODE HERE ***
     # Fit a Poisson Regression model
     # Run on the validation set, and use np.savetxt to save outputs to pred_path
+    clf = PoissonRegression(step_size=lr, max_iter=50000) #150
+    clf.fit(x_train,y_train)
+    y_pred = clf.predict(x_eval)
+    print('predictions: ', y_pred)
+
+    plt.figure()
+    plt.plot(y_eval, y_pred,'o')
+    plt.xlabel('true counts')
+    plt.ylabel('predict counts')
+    plt.savefig('output/p03.png')
     # *** END CODE HERE ***
 
 
@@ -35,7 +43,7 @@ class PoissonRegression(LinearModel):
         > clf.predict(x_eval)
     """
 
-    def fit(self, x, y, lr=1e-7, iter=10000, batch_size=500):
+    def fit(self, x, y):
         """Run gradient ascent to maximize likelihood for Poisson regression.
 
         Args:
@@ -43,21 +51,34 @@ class PoissonRegression(LinearModel):
             y: Training example labels. Shape (m,).
         """
         # *** START CODE HERE ***
-        mm = x.shape[0]
-        nn = x.shape[1]
-        self.theta = np.zeros(nn)
-        iter = 10000
-        train_n = len(x)
-        for i in range(iter):
-            permutation = list(np.random.permutation(mm))
-            x_rand = x[permutation]
-            y_rand = y[permutation]
-            mini_batch_x = [ x_rand[k:k+batch_size] for k in range(0, train_n, batch_size)]
-            mini_batch_y = [ y_rand[k:k+batch_size] for k in range(0, train_n, batch_size)]
-            for j in range(len(mini_batch_x)):
-                grad = (mini_batch_y[j] - np.exp(np.dot(self.theta, mini_batch_x[j].T))).dot(mini_batch_x[j]) / batch_size
-                self.theta = self.theta + lr * grad
+        m, n = x.shape
+        batch_size = 32
+
+        # initialize theta
+        if self.theta == None: self.theta = np.zeros(n)
+        
+        # batch gradient descent for GLM (converges right away)
+        # for iter in range(self.max_iter):
+        #     theta_prev = np.copy(self.theta)
+        #     self.theta += self.step_size*x.T@(y-np.exp(x@self.theta))/m
+            
+        #     if norm((self.theta-theta_prev),ord=1)<self.eps: 
+        #         print('convergence loop number: ', iter)
+        #         print('batch descent delta: ', self.step_size*x.T@(y-np.exp(x@self.theta))/m)
+        #         break
+
+        # modified stochastic GD (force stochastic gd through entire dataset, checks between runs through entire set)
+        for iter in range(self.max_iter):
+            theta_prev = np.copy(self.theta)
+            for i in range(len(x)):
+                self.theta += self.step_size*(y[i]-np.exp(self.theta@x[i,:]))*x[i,:]
+                assert((y[i]-np.exp(self.theta@x[i,:])).shape == ())
+                assert(x[i,:].shape == (n,))
+            if norm((self.theta-theta_prev),ord=1)<self.eps:
+                print('convergence iteration: ',iter)
+                break
         # *** END CODE HERE ***
+
     def predict(self, x):
         """Make a prediction given inputs x.
 
@@ -68,7 +89,5 @@ class PoissonRegression(LinearModel):
             Floating-point prediction for each input, shape (m,).
         """
         # *** START CODE HERE ***
-        z = np.dot(self.theta, x.T)
-        print(z)
-        return np.rint(np.exp(z))
+        return np.exp(x@self.theta)
         # *** END CODE HERE ***

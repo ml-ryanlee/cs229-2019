@@ -38,7 +38,7 @@ def main(train_path, valid_path, test_path, pred_path):
     clf_t.fit(x_train,t_train)
     t_predict = clf_t.predict(x_test)
     np.savetxt(pred_path_a, t_predict) 
-    util.plot(x_test, t_test, clf_t.theta, pred_path,correction=1.0)
+    util.plot(x_test, t_test, clf_t.theta, pred_path,correction=1.0) 
     print('LR accuracy on test DS, trained on true labels: ', accuracy(t_predict,t_test))
 
     # Part (b): Train on y-labels and test on true labels, save outputs to pred_path_b
