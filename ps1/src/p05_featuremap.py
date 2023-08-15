@@ -47,13 +47,6 @@ def main(train_path, eval_path):
     plt.plot(x_train[:,1:],y_train,'o')
     
     # test
-    x_train_map = create_poly(3,x_train)
-    print('x_train after polyfit: ',x_train_map.shape)
-    print('x_train: ','\n',x_train_map)
-    x_train_map = sinetransform(x_train_map) 
-    print('x_train after sine transform: ',x_train_map.shape)
-    print('x_train: ','\n',x_train_map)
-    
     for i in range(len(ks)):
         x_train_map = create_poly(ks[i],x_train)
         x_train_map = sinetransform(x_train_map)
