@@ -88,7 +88,7 @@ def plot(x, y, theta, save_path, correction=1.0):
     plt.figure()
     plt.plot(x[y == 1, -2], x[y == 1, -1], 'bx', linewidth=2)
     plt.plot(x[y == -1, -2], x[y == -1, -1], 'go', linewidth=2)
-
+    plt.legend(['y=1','y=-1'])
     # Plot decision boundary (found by solving for theta^T x = 0)
     x1 = np.arange(min(x[:, -2]), max(x[:, -2]), 0.01)
     x2 = -(theta[0] / theta[2] * correction + theta[1] / theta[2] * x1)
