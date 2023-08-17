@@ -59,7 +59,7 @@ def main():
 
     # model sigmoid fit for increasingly separated data for X|Y=0 and X|Y=1
     plt.figure()
-    dist = [0.01,0.04,0.08,0.1]
+    dist = np.array([0.01,0.04,0.08,0.1])
     sigma = 0.1
     examples = 1000
     n_plot = 1000
@@ -78,13 +78,11 @@ def main():
         print('theta with',d,'distance','is',theta)
         x_plot = np.linspace(-5,5,n_plot).reshape(n_plot,1)
         plt.plot(x_plot,g(x_plot,theta))
-    plt.legend(dist*2)
+    plt.legend((dist*2.0))
     plt.title('sigmoid fitted vs. mean distance between labeled examples')
     plt.xlabel('x')
     plt.ylabel('sigmoid(x) fitted')
     plt.show()
-
-
 
     # plt.figure()
     # plt.plot(Xa[0],Xa[1],'o')
