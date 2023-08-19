@@ -1,7 +1,5 @@
 import collections
-
 import numpy as np
-
 import util
 import svm
 
@@ -100,39 +98,6 @@ def transform_text(messages, word_dictionary):
     return text_array
     # *** END CODE HERE ***
 
-
-def predict_from_naive_bayes_model(model, matrix):
-    """Use a Naive Bayes model to compute predictions for a target matrix.
-
-    This function should be able to predict on the models that fit_naive_bayes_model
-    outputs.
-
-    Args:
-        model: A trained model from fit_naive_bayes_model
-        matrix: A numpy array containing word counts
-
-    Returns: A numpy array containg the predictions from the model
-    """
-    # *** START CODE HERE ***
-    # *** END CODE HERE ***
-
-
-def get_top_five_naive_bayes_words(model, dictionary):
-    """Compute the top five words that are most indicative of the spam (i.e positive) class.
-
-    Ues the metric given in 6c as a measure of how indicative a word is.
-    Return the words in sorted form, with the most indicative word first.
-
-    Args:
-        model: The Naive Bayes model returned from fit_naive_bayes_model
-        dictionary: A mapping of word to integer ids
-
-    Returns: The top five most indicative words in sorted order with the most indicative first
-    """
-    # *** START CODE HERE ***
-    # *** END CODE HERE ***
-
-
 def compute_best_svm_radius(train_matrix, train_labels, val_matrix, val_labels, radius_to_consider):
     """Compute the optimal SVM radius using the provided training and evaluation datasets.
 
@@ -150,6 +115,16 @@ def compute_best_svm_radius(train_matrix, train_labels, val_matrix, val_labels, 
         The best radius which maximizes SVM accuracy.
     """
     # *** START CODE HERE ***
+    best_radius = 0
+    best_accuracy = 0
+
+    # iterate through list of radii, return radius with best accuracy
+    for radius in radius_to_consider:
+        predict = svm.train_and_predict_svm(train_matrix, train_labels, val_matrix, radius)
+        if accuracy(predict,val_labels) > best_accuracy:
+            best_radius = radius
+            best_accuracy = accuracy(predict,val_labels)
+    return best_radius
     # *** END CODE HERE ***
 
 
@@ -159,54 +134,35 @@ def main():
     val_messages, val_labels = util.load_spam_dataset('../data/ds6_val.tsv')
     test_messages, test_labels = util.load_spam_dataset('../data/ds6_test.tsv')
     
-    # create dictionary
+    # a1. create dictionary
     dictionary = create_dictionary(train_messages)
     util.write_json('./output/p06_dictionary', dictionary)
 
-    # create NB multinomial event model feature matrices
+    # a2. create NB multinomial event model feature matrices
     train_matrix = transform_text(train_messages, dictionary)
-    np.savetxt('./output/p06_sample_train_matrix', train_matrix[:100,:])
-    val_matrix = transform_text(val_messages,dictionary)
+    val_matrix = transform_text(val_messages, dictionary)
     test_matrix = transform_text(test_messages, dictionary)
+    np.savetxt('./output/p06_sample_train_matrix', train_matrix[:100,:])
 
-    # create a naive bayes classifier, fit it with training matrix and labels
+    # b1. create a naive bayes classifier, fit it with training matrix and labels
     clf = naive_bayes()
     clf.fit(train_matrix,train_labels)
 
-    # return probabilities* of val_matrix
-    probs0, probs1 = clf.predict(val_matrix)
-    print('probs0:', probs0,'\nprobs1:',probs1)
+    # b2. return predictions of spam or not spam with trained classifier
+    predict_val = clf.predict(val_matrix)
+    predict_test = clf.predict(test_matrix)
+    print('validation accuracy:',accuracy(predict_val,val_labels))
+    print('test accuracy:',accuracy(predict_test,test_labels))
 
-    # print('clf priors:',clf.py0,clf.py1,'\nclf probs:', clf.phi0,clf.phi1)
-    # print('clf probs shape x|y=1:', clf.phi1.shape, 'clf probs x|y=0:',clf.phi0.shape)
-    #naive_bayes_model = fit_naive_bayes_model(train_matrix, train_labels)
-    
-    #print(naive_bayes_model)
-    # naive_bayes_predictions = predict_from_naive_bayes_model(naive_bayes_model, test_matrix)
+    # c. get top 5 words indicative of spam
+    clf.top5words(dictionary)
 
-    # np.savetxt('./output/p06_naive_bayes_predictions', naive_bayes_predictions)
-
-    # naive_bayes_accuracy = np.mean(naive_bayes_predictions == test_labels)
-
-    # print('Naive Bayes had an accuracy of {} on the testing set'.format(naive_bayes_accuracy))
-
-    # top_5_words = get_top_five_naive_bayes_words(naive_bayes_model, dictionary)
-
-    # print('The top 5 indicative words for Naive Bayes are: ', top_5_words)
-
-    # util.write_json('./output/p06_top_indicative_words', top_5_words)
-
-    # optimal_radius = compute_best_svm_radius(train_matrix, train_labels, val_matrix, val_labels, [0.01, 0.1, 1, 10])
-
-    # util.write_json('./output/p06_optimal_radius', optimal_radius)
-
-    # print('The optimal SVM radius was {}'.format(optimal_radius))
-
-    # svm_predictions = svm.train_and_predict_svm(train_matrix, train_labels, test_matrix, optimal_radius)
-
-    # svm_accuracy = np.mean(svm_predictions == test_labels)
-
-    # print('The SVM model had an accuracy of {} on the testing set'.format(svm_accuracy, optimal_radius))
+    # d. train an svm with an rbf kernel
+    optimal_radius = compute_best_svm_radius(train_matrix, train_labels, val_matrix, val_labels, [0.01, 0.1, 1, 10])
+    svm_predictions = svm.train_and_predict_svm(train_matrix, train_labels, test_matrix, optimal_radius)
+    svm_accuracy = np.mean(svm_predictions == test_labels)
+    print('The optimal SVM radius was {}'.format(optimal_radius))
+    print('The SVM model had an accuracy of {} on the testing set'.format(svm_accuracy, optimal_radius))
 
 class naive_bayes(object):
     def __init__(self, py0=None,py1=None,phi0=0,phi1=0):
@@ -234,7 +190,6 @@ class naive_bayes(object):
         assert(self.phi0.shape == (n,))
     
     def predict(self, matrix):
-        print('in predict method')
         m = len(matrix)
         
         # calculate log(p(x|y=k)),l_pxyk, to prevent underflow and for efficiency
@@ -250,9 +205,31 @@ class naive_bayes(object):
         # calculate naive bayes classifier probabilities, with Bayes Rule
         probs_y0 = (pxy0*self.py0)/(pxy0*self.py0+pxy1*self.py1)
         probs_y1 = (pxy1*self.py1)/(pxy0*self.py0+pxy1*self.py1)
-        return probs_y0,probs_y1
+        return (probs_y1>probs_y0).astype(int)
+    
+    def top5words(self,dictionary):
+        n = len(dictionary)
+        
+        # approximate word's indicativeness of spam 
+        spam_token_prob = np.log(self.phi1/self.phi0)
+        assert(spam_token_prob.shape == (n,))
+
+        # get top 5 indexes associated with highest indicativeness
+        top5_idx = np.argsort(spam_token_prob)[::-1][:5]
+        
+        # for each of the top 5 indexes, find the word. 
+        # in the dict, the key is the word and the value is the index
+        # not an efficient implementation
+        list_top5 = []
+        for i in top5_idx:
+            for key in sorted(dictionary.keys()):
+                if dictionary[key] == i:
+                   list_top5.append(key)
+        print('top 5 words indicative of spam are:',list_top5)
 
 
+def accuracy(predict, y):
+    return sum(predict==y)/len(y)
 
 if __name__ == "__main__":
     main()
