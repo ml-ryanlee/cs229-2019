@@ -166,7 +166,7 @@ def main():
     # create NB multinomial event model feature matrices
     train_matrix = transform_text(train_messages, dictionary)
     np.savetxt('./output/p06_sample_train_matrix', train_matrix[:100,:])
-    val_matrix = transform_text(val_messages,val_labels)
+    val_matrix = transform_text(val_messages,dictionary)
     test_matrix = transform_text(test_messages, dictionary)
 
     # create a naive bayes classifier, fit it with training matrix and labels
@@ -175,6 +175,7 @@ def main():
 
     # return probabilities* of val_matrix
     probs0, probs1 = clf.predict(val_matrix)
+    print('probs0:', probs0,'\nprobs1:',probs1)
 
     # print('clf priors:',clf.py0,clf.py1,'\nclf probs:', clf.phi0,clf.phi1)
     # print('clf probs shape x|y=1:', clf.phi1.shape, 'clf probs x|y=0:',clf.phi0.shape)
@@ -237,22 +238,20 @@ class naive_bayes(object):
         m = len(matrix)
         
         # calculate log(p(x|y=k)),l_pxyk, to prevent underflow and for efficiency
-        print('shape of self.phi0', self.phi0.shape)
-        print('shape of self.phi1', self.phi1.shape)
         l_pxy0 = matrix@np.log(self.phi0)
-        # l_pxy1 = matrix@np.log(self.phi1)
+        l_pxy1 = matrix@np.log(self.phi1)
 
         # extract p(x|y=1) by taking exp of log
-        # pxy0 = np.exp(l_pxy0)
-        # pxy1 = np.exp(l_pxy1)
-        # assert (pxy0.shape == (m,))
-        # assert(pxy1.shape == (m,))
+        pxy0 = np.exp(l_pxy0)
+        pxy1 = np.exp(l_pxy1)
+        assert (pxy0.shape == (m,))
+        assert(pxy1.shape == (m,))
 
         # calculate naive bayes classifier probabilities, with Bayes Rule
-        # probs_y0 = (pxy0*self.py0)/(pxy0*self.py0+pxy1*self.py1)
-        # probs_y1 = (pxy1*self.py1)/(pxy0*self.py0+pxy1*self.py1)
-        # return probs_y0,probs_y1
-        return 0,1
+        probs_y0 = (pxy0*self.py0)/(pxy0*self.py0+pxy1*self.py1)
+        probs_y1 = (pxy1*self.py1)/(pxy0*self.py0+pxy1*self.py1)
+        return probs_y0,probs_y1
+
 
 
 if __name__ == "__main__":
