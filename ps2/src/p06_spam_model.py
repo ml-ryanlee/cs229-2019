@@ -101,50 +101,6 @@ def transform_text(messages, word_dictionary):
     # *** END CODE HERE ***
 
 
-def fit_naive_bayes_model(matrix, labels):
-    """Fit a naive bayes model.
-
-    This function should fit a Naive Bayes model given a training matrix and labels.
-
-    The function should return the state of that model.
-
-    Feel free to use whatever datatype you wish for the state of the model.
-
-    Args:
-        matrix: A numpy array containing word counts for the training data
-        labels: The binary (0 or 1) labels for that training data
-
-    Returns: The trained model
-    """
-
-    # *** START CODE HERE ***
-    # MLE estimators with Laplace Smoothing
-    phi_y1 = sum(labels)/len(labels)
-    phi_y0 = 1-phi_y1
-    
-    n = matrix.shape[1] #number of indexed words in dict & feature matrix
-    x_y1 = matrix[labels==1]
-    x_y0 = matrix[labels==0]
-
-    # xj|Y prob = (# of xj words in Y=1) / (# of words in Y=1)
-    # Laplace smoothing: [(# of xj words in Y=1)+1] / [(# of words in Y=1)+n]
-    phi_x_y1 = (sum(x_y1,0)+1)/(sum(x_y1.flatten())+n)
-    phi_x_y0 =(sum(x_y0,0)+1)/(sum(x_y0.flatten())+n)
-    assert(phi_x_y1.shape == (n,))
-    assert(phi_x_y0.shape == (n,))
-    #print('phi x|y=0:',phi_x_y0,'\nphi x|y=1:',phi_x_y1)
-    # *** END CODE HERE ***
-    
-    #store priors in a (2,) array, store probs in a (n,2) array, where n = # of indexed words
-    priors = np.array([phi_y0,phi_y1])
-    probs = np.zeros((n,2))
-    probs[:,0] = phi_x_y0
-    probs[:,1] = phi_x_y1
-    assert(priors.shape == (2,))
-    assert(probs.shape == (n,2))
-
-    return priors, probs
-
 def predict_from_naive_bayes_model(model, matrix):
     """Use a Naive Bayes model to compute predictions for a target matrix.
 
@@ -198,36 +154,30 @@ def compute_best_svm_radius(train_matrix, train_labels, val_matrix, val_labels, 
 
 
 def main():
-    #A. Unit test of create_dictionary function
-    #train_messages, train_labels = util.load_spam_dataset('../data/ds6_unit_test_dict.tsv')
-    #sample_message = train_messages[0:100]
-    #create_dictionary(sample_message)
-    # print('sample message # of examples:', len(sample_message))
-    #print(sample_message,'\n Type of sample message: ' ,type(sample_message))
-
+    # Load datasets
     train_messages, train_labels = util.load_spam_dataset('../data/ds6_train.tsv')
     val_messages, val_labels = util.load_spam_dataset('../data/ds6_val.tsv')
     test_messages, test_labels = util.load_spam_dataset('../data/ds6_test.tsv')
     
-    # test_getwords = get_words(train_messages[18])
-    # print('unit test of get_words function: ', test_getwords)
-    
+    # create dictionary
     dictionary = create_dictionary(train_messages)
-    #print('length of dictionary: ', len(dictionary))
-
     util.write_json('./output/p06_dictionary', dictionary)
 
+    # create NB multinomial event model feature matrices
     train_matrix = transform_text(train_messages, dictionary)
-    # print('size of train_matrix: ',train_matrix.shape)
-
-    # np.savetxt('./output/p06_sample_train_matrix', train_matrix[:100,:])
-
-    val_matrix = transform_text(val_messages, dictionary)
+    np.savetxt('./output/p06_sample_train_matrix', train_matrix[:100,:])
+    val_matrix = transform_text(val_messages,val_labels)
     test_matrix = transform_text(test_messages, dictionary)
+
+    # create a naive bayes classifier, fit it with training matrix and labels
     clf = naive_bayes()
     clf.fit(train_matrix,train_labels)
-    print('clf priors:',clf.prior0,clf.prior1,'\nclf probs:', clf.phi0,clf.phi1)
-    print('clf probs shape x|y=1:', clf.phi1.shape, 'clf probs x|y=0:',clf.phi0.shape)
+
+    # return probabilities* of val_matrix
+    probs0, probs1 = clf.predict(val_matrix)
+
+    # print('clf priors:',clf.py0,clf.py1,'\nclf probs:', clf.phi0,clf.phi1)
+    # print('clf probs shape x|y=1:', clf.phi1.shape, 'clf probs x|y=0:',clf.phi0.shape)
     #naive_bayes_model = fit_naive_bayes_model(train_matrix, train_labels)
     
     #print(naive_bayes_model)
@@ -258,17 +208,52 @@ def main():
     # print('The SVM model had an accuracy of {} on the testing set'.format(svm_accuracy, optimal_radius))
 
 class naive_bayes(object):
-    def __init__(self, prior0=None,prior1=None,phi0=0,phi1=0):
-        self.prior0 = prior0
-        self.prior1 = prior1
+    def __init__(self, py0=None,py1=None,phi0=0,phi1=0):
+        self.py0 = py0
+        self.py1 = py1
         self.phi0 = phi0
         self.phi1 = phi1
+    
     def fit(self, matrix,labels):
-        priors,probs = fit_naive_bayes_model(matrix, labels)
-        self.prior0 = priors[0]
-        self.prior1 = priors[1]
-        self.phi0 = probs[:,0]
-        self.phi1 = probs[:,1]
+        
+        # Priors: P(Y=1),P(Y=0)
+        self.py1 = sum(labels)/len(labels)
+        self.py0 = 1-self.py1
+    
+        # MLE estimators, P(xj=k|Y=1) with Laplace Smoothing
+        n = matrix.shape[1] #number of indexed words in dict & feature matrix
+        x_y1 = matrix[labels==1]
+        x_y0 = matrix[labels==0]
+
+        # xj|Y prob = (# of xj words in Y=1) / (# of words in Y=1)
+        # Laplace smoothing: [(# of xj words in Y=1)+1] / [(# of words in Y=1)+n]
+        self.phi1 = (sum(x_y1,0)+1)/(sum(x_y1.flatten())+n)
+        self.phi0 =(sum(x_y0,0)+1)/(sum(x_y0.flatten())+n)
+        assert(self.phi1.shape == (n,))
+        assert(self.phi0.shape == (n,))
+    
+    def predict(self, matrix):
+        print('in predict method')
+        m = len(matrix)
+        
+        # calculate log(p(x|y=k)),l_pxyk, to prevent underflow and for efficiency
+        print('shape of self.phi0', self.phi0.shape)
+        print('shape of self.phi1', self.phi1.shape)
+        l_pxy0 = matrix@np.log(self.phi0)
+        # l_pxy1 = matrix@np.log(self.phi1)
+
+        # extract p(x|y=1) by taking exp of log
+        # pxy0 = np.exp(l_pxy0)
+        # pxy1 = np.exp(l_pxy1)
+        # assert (pxy0.shape == (m,))
+        # assert(pxy1.shape == (m,))
+
+        # calculate naive bayes classifier probabilities, with Bayes Rule
+        # probs_y0 = (pxy0*self.py0)/(pxy0*self.py0+pxy1*self.py1)
+        # probs_y1 = (pxy1*self.py1)/(pxy0*self.py0+pxy1*self.py1)
+        # return probs_y0,probs_y1
+        return 0,1
+
 
 if __name__ == "__main__":
     main()
