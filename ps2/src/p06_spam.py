@@ -129,7 +129,7 @@ def fit_naive_bayes_model(matrix, labels):
     # not yet adjusted for underflow issue
     phi_x_y1 = (sum(x_y1,0)+1)/(sum(x_y1.flatten())+laplace_n)
     phi_x_y0 =(sum(x_y0,0)+1)/(sum(x_y0.flatten())+laplace_n)
-    print(phi_x_y0.shape,phi_x_y1.shape)
+    #print(phi_x_y0.shape,phi_x_y1.shape)
     # *** END CODE HERE ***
     
     #need to figure out datatype to store state of model
