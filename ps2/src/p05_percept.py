@@ -16,7 +16,8 @@ def initial_state():
     """
 
     # *** START CODE HERE ***
-    return []
+    clf = perceptron()
+    return clf
     # *** END CODE HERE ***
 
 
@@ -34,10 +35,23 @@ def predict(state, kernel, x_i):
         Returns the prediction (i.e 0 or 1)
     """
     # *** START CODE HERE ***
-    z = 0
-    for x, beta in state:
-         z = z + beta * kernel(x, x_i)
-    return sign(z)
+    
+    # sum over the number of incorporated examples (1 Beta for each) 
+    # i = len(state.x)
+    # n = state.x.shape[1]
+    # print('x is:', state.x)
+    # print('\nx shape is:',state.x.shape)
+    m,n = state.x.shape
+    sum = 0
+    # take the kernel for K(x_j,x_i) up to i examples
+    for j in range(m):
+        x_j = state.x[j,:]
+        assert(x_j.shape == (n,))
+        sum += state.B[j]*kernel(x_j,x_i)
+
+    # return g(sum)
+    return sign(sum)
+
     # *** END CODE HERE ***
 
 
@@ -52,10 +66,11 @@ def update_state(state, kernel, learning_rate, x_i, y_i):
         y_i: A 0 or 1 indicating the label for a single instance
     """
     # *** START CODE HERE ***
-    h_x = predict(state, kernel, x_i)
-    if h_x != y_i:
-        val = learning_rate * (2*y_i - 1)
-        state.append((x_i, val))
+    n = len(x_i) #number of features
+    h_x = predict(state,kernel,x_i)
+    B_i = learning_rate*(y_i-h_x)
+    state.B = np.append(state.B,B_i)
+    state.x = np.append(state.x,x_i.reshape(1,n),axis=0)
     # *** END CODE HERE ***
 
 
@@ -107,6 +122,9 @@ def train_perceptron(kernel_name, kernel, learning_rate):
 
     state = initial_state()
 
+    # print('initial state:', state.B,state.x)
+    # print('initial state shape:',state.B.shape, state.x.shape)
+
     for x_i, y_i in zip(train_x, train_y):
         update_state(state, kernel, learning_rate, x_i, y_i)
 
@@ -126,6 +144,14 @@ def main():
     train_perceptron('dot', dot_kernel, 0.5)
     train_perceptron('rbf', rbf_kernel, 0.5)
 
+
+class perceptron(object):
+    def __init__(self, B = np.array([0]), x = np.ones((1,2))):
+        self.B = B
+        #not generalizable, manually set initial x.
+        self.x = x
+    
+        
 
 if __name__ == "__main__":
     main()
