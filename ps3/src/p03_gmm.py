@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys
+
+from numpy.linalg import inv 
+from numpy.linalg import det
 
 PLOT_COLORS = ['red', 'green', 'blue', 'orange']  # Colors for your plots
 K = 4           # Number of Gaussians in the mixture model
@@ -24,28 +28,39 @@ def main(is_semi_supervised, trial_num):
         x_tilde = x[labeled_idxs, :]   # Labeled examples
         z = z[labeled_idxs, :]         # Corresponding labels
         x = x[~labeled_idxs, :]        # Unlabeled examples
+
     # *** START CODE HERE ***
     # (1) Initialize mu and sigma by splitting the m data points uniformly at random
     # into K groups, then calculating the sample mean and covariance for each group
+
+    # create k splits after shuffling data
+    x_shuffled = np.copy(x)
+    np.random.shuffle(x_shuffled)
+    k_splits = np.array_split(x_shuffled,K)
+
+    # calculate sample mean and covariance
+    m,n = x.shape
+    mu = []
+    sigma = []
+    for i in range(K):
+        mu.append(np.average(k_splits[i],axis=0)) 
+        sigma.append(np.cov(k_splits[i].T))
+    
+    assert(len(mu) == K)
+    assert(mu[0].shape == (n,))
+    
+    assert(len(sigma) == K)
+    assert(sigma[0].shape == (n,n))
+    
     # (2) Initialize phi to place equal probability on each Gaussian
     # phi should be a numpy array of shape (K,)
+    phi = np.ones(K)/K
+    assert(phi.shape == (K,)) 
+    
     # (3) Initialize the w values to place equal probability on each Gaussian
     # w should be a numpy array of shape (m, K)
-    m,n = np.shape(x)
-    indices = np.arange(m)
-    np.random.shuffle(indices)
-    x = x[indices]
-    group_nb = m // K
-    mu = np.zeros((K, n))
-    sigma = np.zeros((K, n, n))
-    phi = np.ones(K) / K
-    w = np.ones((m, K)) / K
-    for i in range(K):
-        start = i * group_nb
-        end = m if i == K-1 else (i+1)*group_nb
-        mu[i] = np.mean(x[start:end, :], axis=0)
-        sigma[i] = (x[start:end, :] - mu[i]).T.dot(x[start:end, :] - mu[i]) / group_nb
-        
+    w = np.ones((m,K))/K
+    assert(w.shape == (m,K))
 
     # *** END CODE HERE ***
 
@@ -88,33 +103,34 @@ def run_em(x, w, phi, mu, sigma):
     # See below for explanation of the convergence criterion
     it = 0
     ll = prev_ll = None
-    m, n= x.shape
+    m,n = x.shape
+
     while it < max_iter and (prev_ll is None or np.abs(ll - prev_ll) >= eps):
+        pass  # Just a placeholder for the starter code
         # *** START CODE HERE
         # (1) E-step: Update your estimates in w
+        w_den = 0
+        for i in range(m):
+            for j in range(K):
+                v = (x[i]-mu[j]).reshape(n,1)
+                # ISSUE: how do you express |∑|^-1/2? Is this a scalar?
+                w[i,j] = det(sigma[j])**(-1/2)*np.exp(-1/2*v.T@inv(sigma[j])@v)*phi[j]
+                w_den += w[i,j]
+            # divide i row by w_den, reset w_den sum for next example
+            w[i:] = w[i:]/w_den
+            w_den = 0
+
         # (2) M-step: Update the model parameters phi, mu, and sigma
+        phi = np.sum(w,axis=0)
+        assert(phi.shape == (K,))
+
+
         # (3) Compute the log-likelihood of the data to check for convergence.
         # By log-likelihood, we mean `ll = sum_x[log(sum_z[p(x|z) * p(z)])]`.
         # We define convergence by the first iteration where abs(ll - prev_ll) < eps.
         # Hint: For debugging, recall part (a). We showed that ll should be monotonically increasing.
-        prev_ll = ll
-        for j in range(K):
-            #(m,)
-            proc = gaussian(x, mu[j], sigma[j])
-            w[:, j] = proc * phi[j]
-        w = w / w.sum(axis=1, keepdims=True)
-        phi = np.sum(w, axis=0) / m
-        mu = (x[None] * w.T[:, :, None]).sum(axis=1) / w.sum(axis=0)[:,None]
-        for j in range(K):
-            sigma[j] = (x - mu[j]).T.dot(np.diag(w[:, j])).dot(x- mu[j]) / np.sum(w[:, j])
-        p_x_gz = np.zeros((m, K))
-        for i in range(K):
-            proc = gaussian(x, mu[i], sigma[i])
-            p_x_gz[:,i] = proc * phi[i]
-        ll = np.log(p_x_gz.sum(axis=1)).sum()
-        it+=1
-        print(" it :{}log-likelihood:{} ".format(it,ll))
-    # *** END CODE HERE ***
+        # *** END CODE HERE ***
+
     return w
 
 
@@ -141,8 +157,7 @@ def run_semi_supervised_em(x, x_tilde, z, w, phi, mu, sigma):
     alpha = 20.  # Weight for the labeled examples
     eps = 1e-3   # Convergence threshold
     max_iter = 1000
-    m,n = x.shape
-    m_ = x_tilde.shape[0]
+
     # Stop when the absolute change in log-likelihood is < eps
     # See below for explanation of the convergence criterion
     it = 0
@@ -155,51 +170,13 @@ def run_semi_supervised_em(x, x_tilde, z, w, phi, mu, sigma):
         # (3) Compute the log-likelihood of the data to check for convergence.
         # Hint: Make sure to include alpha in your calculation of ll.
         # Hint: For debugging, recall part (a). We showed that ll should be monotonically increasing.
-        prev_ll = ll
-        w_ = np.zeros((m_, K))
-        for j in range(K):
-            #(m,)
-            proc = gaussian(x, mu[j], sigma[j])
-            w[:, j] = proc * phi[j]
-            w_[:,j] = (z == j).squeeze()
-        w = w / w.sum(axis=1, keepdims=True)
-        phi = np.sum(w, axis=0) + alpha * np.sum(w_, axis=0)
-        phi = phi / phi.sum()
-        for j in range(K):
-            mu[j] = (w[:, j].dot(x) + alpha * w_[:, j].dot(x_tilde))/ (w[:, j].sum() + alpha * w_[:, j].sum())
-            sigma[j] = (((x - mu[j]).T.dot(np.diag(w[:, j]).dot(x- mu[j]))) + ((x_tilde - mu[j]).T.dot(np.diag(w_[:, j])).dot(x_tilde - mu[j]))) / (np.sum(w[:, j]) + alpha*w_[:, j].sum())
-        p_x = np.zeros(m)
-        for i in range(K):
-            proc = gaussian(x, mu[i], sigma[i])
-            p_x += proc * phi[i]
-        p_x_z = np.zeros(m_)
-        for j in range(K):
-            p_x_z += gaussian(x_tilde, mu[j], sigma[j]) * phi[j]
-        ll = np.sum(np.log(p_x)) + alpha * np.sum(np.log(p_x_z))
-        it+=1
-        print(" it :{}log-likelihood:{} ".format(it,ll))
         # *** END CODE HERE ***
+
     return w
 
 
 # *** START CODE HERE ***
 # Helper functions
-def gaussian(x, mu, sigma):
-    """
-    input:
-    x -> (m, n)
-    mu -> (n,)
-    sigma -> (n, n)
-    output:
-    pro -> (m,)
-    """
-    # (m, 1, n)
-    term = (x - mu)[:, None]
-    term = -0.5 * (term @ np.linalg.pinv(sigma) @ term.transpose(0, 2, 1))[:,0,0]
-    dia = 1/(np.power(2 * np.pi, x.shape[1]/2) * np.sqrt(np.linalg.det(sigma)))
-    return np.exp(term)  * dia
-    
-
 # *** END CODE HERE ***
 
 
@@ -267,5 +244,5 @@ if __name__ == '__main__':
         # Once you've implemented the semi-supervised version,
         # uncomment the following line.
         # You do not need to add any other lines in this code block.
-        main(is_semi_supervised=True, trial_num=t)
+        # main(with_supervision=True, trial_num=t)
         # *** END CODE HERE ***
