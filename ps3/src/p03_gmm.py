@@ -106,14 +106,19 @@ def run_em(x, w, phi, mu, sigma):
     m,n = x.shape
 
     while it < max_iter and (prev_ll is None or np.abs(ll - prev_ll) >= eps):
-        pass  # Just a placeholder for the starter code
+        # Just a placeholder for the starter code
         # *** START CODE HERE
+        
+        prev_ll = ll
+        ll = 0
+
         # (1) E-step: Update your estimates in w
         w_den = 0
+
         for i in range(m):
             for j in range(K):
-                v = (x[i]-mu[j]).reshape(n,1)
-                # ISSUE: how do you express |∑|^-1/2? Is this a scalar?
+                v = (x[i]-mu[j])
+                # p(z|x) estimation for EM                
                 w[i,j] = det(sigma[j])**(-1/2)*np.exp(-1/2*v.T@inv(sigma[j])@v)*phi[j]
                 w_den += w[i,j]
             # divide i row by w_den, reset w_den sum for next example
@@ -124,13 +129,25 @@ def run_em(x, w, phi, mu, sigma):
         phi = np.sum(w,axis=0)
         assert(phi.shape == (K,))
 
+        for l in range(K):
+            mu[l] = x.T@w[:,l]/np.sum(w[:,l])
+        assert(mu[0].shape == (n,))
+
+        for l in range(K):
+            sigma[l] = (x-mu[l]).T@((x-mu[l])*w[:,l].reshape(m,1))
+            sigma[l] = sigma[l]/np.sum(w[:,l])
+            assert(sigma[l].shape == (n,n))
 
         # (3) Compute the log-likelihood of the data to check for convergence.
         # By log-likelihood, we mean `ll = sum_x[log(sum_z[p(x|z) * p(z)])]`.
         # We define convergence by the first iteration where abs(ll - prev_ll) < eps.
         # Hint: For debugging, recall part (a). We showed that ll should be monotonically increasing.
+        for i in range(m):
+            for j in range(K):
+                nconst = 1/(2*np.pi*det(sigma[j])**(1/2))
+                v = (x[i,:]-mu[j])
+                ll += w[i,j]*np.log((nconst*np.exp(-0.5*v@inv(sigma[j])@v.T)*phi[j])/(w[i,j]))
         # *** END CODE HERE ***
-
     return w
 
 
@@ -166,10 +183,14 @@ def run_semi_supervised_em(x, x_tilde, z, w, phi, mu, sigma):
         pass  # Just a placeholder for the starter code
         # *** START CODE HERE ***
         # (1) E-step: Update your estimates in w
+        
         # (2) M-step: Update the model parameters phi, mu, and sigma
+        
         # (3) Compute the log-likelihood of the data to check for convergence.
+        
         # Hint: Make sure to include alpha in your calculation of ll.
         # Hint: For debugging, recall part (a). We showed that ll should be monotonically increasing.
+        
         # *** END CODE HERE ***
 
     return w
