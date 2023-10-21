@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import random
+import sys
 
 
 def init_centroids(num_clusters, image):
@@ -27,7 +28,23 @@ def init_centroids(num_clusters, image):
 
     # *** START YOUR CODE ***
     # Initialize centroids.
-    centroids_init = None ## np.random.randint(256, size=[num_clusters, image.shape[-1]])
+    H,W,C = image.shape
+
+    # choose random x and y values
+    idx = np.random.randint(0,W,num_clusters)
+    idy = np.random.randint(0,H,num_clusters)
+
+    centroids_init = np.zeros(C,num_clusters)
+    for i in range(num_clusters):
+        centroids_init[:,i] = 
+
+
+    print(idx.shape)
+    print(idy.shape)
+
+    sys.exit(1)
+
+
     # raise NotImplementedError('init_centroids function not implemented')
     # *** END YOUR CODE ***
     return centroids_init
@@ -152,9 +169,9 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--small_path', default='./peppers-small.tiff',
+    parser.add_argument('--small_path', default='../data/peppers-small.tiff',
                         help='Path to small image')
-    parser.add_argument('--large_path', default='./peppers-large.tiff',
+    parser.add_argument('--large_path', default='../data/peppers-large.tiff',
                         help='Path to large image')
     parser.add_argument('--max_iter', type=int, default=150,
                         help='Maximum number of iterations')

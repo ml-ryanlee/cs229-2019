@@ -110,7 +110,6 @@ def run_em(x, w, phi, mu, sigma):
         # *** START CODE HERE
         
         prev_ll = ll
-        ll = 0
 
         # (1) E-step: Update your estimates in w
         w_den = 0
@@ -122,32 +121,38 @@ def run_em(x, w, phi, mu, sigma):
                 w[i,j] = det(sigma[j])**(-1/2)*np.exp(-1/2*v.T@inv(sigma[j])@v)*phi[j]
                 w_den += w[i,j]
             # divide i row by w_den, reset w_den sum for next example
-            w[i:] = w[i:]/w_den
+            w[i:] /= w_den
             w_den = 0
 
         # (2) M-step: Update the model parameters phi, mu, and sigma
-        phi = np.sum(w,axis=0)
+        phi = np.sum(w,axis=0)/m
         assert(phi.shape == (K,))
 
         for l in range(K):
-            mu[l] = x.T@w[:,l]/np.sum(w[:,l])
-        assert(mu[0].shape == (n,))
-
+            mu[l] = (x.T@w[:,l])/np.sum(w[:,l])
+     
         for l in range(K):
             sigma[l] = (x-mu[l]).T@((x-mu[l])*w[:,l].reshape(m,1))
-            sigma[l] = sigma[l]/np.sum(w[:,l])
+            sigma[l] /= np.sum(w[:,l])
             assert(sigma[l].shape == (n,n))
 
         # (3) Compute the log-likelihood of the data to check for convergence.
         # By log-likelihood, we mean `ll = sum_x[log(sum_z[p(x|z) * p(z)])]`.
         # We define convergence by the first iteration where abs(ll - prev_ll) < eps.
         # Hint: For debugging, recall part (a). We showed that ll should be monotonically increasing.
+        
+        sum_z = 0
+        sum_x = 0
         for i in range(m):
-            for j in range(K):
-                nconst = 1/(2*np.pi*det(sigma[j])**(1/2))
-                v = (x[i,:]-mu[j])
-                ll += w[i,j]*np.log((nconst*np.exp(-0.5*v@inv(sigma[j])@v.T)*phi[j])/(w[i,j]))
+            for l in range(K):
+                nconst = 1/((2*np.pi)**(n/2)*det(sigma[l])**(1/2))
+                v = (x[i]-mu[l])
+                sum_z += nconst*np.exp(-1/2*v.T@inv(sigma[l])@v)*phi[l]
+            sum_x += np.log(sum_z)
+        ll = sum_x
+
         # *** END CODE HERE ***
+        print(ll)
     return w
 
 
