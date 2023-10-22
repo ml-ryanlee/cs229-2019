@@ -160,6 +160,9 @@ def backward_convolution(conv_W, conv_b, data, output_grad):
     """
 
     # *** START CODE HERE ***
+    grad_w = 
+    grad_b = 
+    grad_data = 
     # *** END CODE HERE ***
 
 def forward_max_pool(data, pool_width, pool_height):
@@ -245,9 +248,9 @@ def backward_cross_entropy_loss(probabilities, labels):
 def forward_linear(weights, bias, data):
     """
     Compute the output from a linear layer with the given weights, bias and data.
-    weights is of the shape (input # features, output # features)
-    bias is of the shape (output # features)
-    data is of the shape (input # features)
+    weights is of the shape (input # feature [n], output # features [d])
+    bias is of the shape (output # features [d])
+    data is of the shape (input # features [n])
 
     The output should be of the shape (output # features)
 
@@ -271,15 +274,18 @@ def backward_linear(weights, bias, data, output_grad):
     """
 
     # *** START CODE HERE ***
-    assert(weights.shape[1] = len(data))
-    grad_w = np.tile(data,(weights.shape[0],1)) #gradient w.r.t is a be a matrix, but not typically referred to as a gradient.
-    assert(grad_w.shape = weights.shape) #partial deriv. w.r.t. W same shape as W
+    n,d = weights.shape
+    D_w = np.tile(data.reshape(n,1),d)      # deriv Z w.r.t W. result is (n,d) shape
+    grad_w = output_grad*D_w                # output_grad broadcast to (1,d) and multiplied across rows
     
-    grad_b = np.ones(len(bias))
-    assert(grad_b.shape == bias.shape) #gradient of vector same shape as vector
-     
-    J_x = weights.T # technically, the derivative of one vector w.r.t. to another vector is a Jacobian, not gradient
-    return (grad_w, grad_b, J_x)
+    d_b = np.ones(len(bias))                # deriv Z w.r.t b, result is (d,)     
+    grad_b = output_grad*d_b              
+    
+    D_data = weights                        # deriv Z w.r.t data, result is (n,d) as partial wrt. vec of vec is matrix
+    grad_data = D_data@output_grad
+
+
+    return (grad_w, grad_b, grad_data)
     # *** END CODE HERE ***
 
 def forward_prop(data, labels, params):
