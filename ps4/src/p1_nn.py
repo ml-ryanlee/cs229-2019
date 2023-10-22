@@ -41,7 +41,9 @@ def backward_softmax(x, grad_outputs):
     """
     
     # *** START CODE HERE ***
-    
+    S = forward_softmax(x)
+    J_softmax = np.diag(S)-S@S.T
+    return J_softmax@grad_outputs
     # *** END CODE HERE ***
 
 def forward_relu(x):
@@ -72,7 +74,8 @@ def backward_relu(x, grad_outputs):
     """
 
     # *** START CODE HERE ***
-    return grad_outputs*np.where(x>0,1,0)
+    grad_relu = np.where(x>0,1,0)
+    return grad_outputs*grad_relu
     # *** END CODE HERE ***
 
 def get_initial_params():
@@ -236,7 +239,7 @@ def backward_cross_entropy_loss(probabilities, labels):
     """
 
     # *** START CODE HERE ***
-    return -probabilities/labels
+    return -labels/probabilities
     # *** END CODE HERE ***
 
 def forward_linear(weights, bias, data):
@@ -268,7 +271,15 @@ def backward_linear(weights, bias, data, output_grad):
     """
 
     # *** START CODE HERE ***
+    assert(weights.shape[1] = len(data))
+    grad_w = np.tile(data,(weights.shape[0],1)) #gradient w.r.t is a be a matrix, but not typically referred to as a gradient.
+    assert(grad_w.shape = weights.shape) #partial deriv. w.r.t. W same shape as W
     
+    grad_b = np.ones(len(bias))
+    assert(grad_b.shape == bias.shape) #gradient of vector same shape as vector
+     
+    J_x = weights.T # technically, the derivative of one vector w.r.t. to another vector is a Jacobian, not gradient
+    return (grad_w, grad_b, J_x)
     # *** END CODE HERE ***
 
 def forward_prop(data, labels, params):
