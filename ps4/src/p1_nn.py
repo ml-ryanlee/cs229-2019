@@ -163,18 +163,41 @@ def backward_convolution(conv_W, conv_b, data, output_grad):
     conv_channels, _, conv_width, conv_height = conv_W.shape # don't save input_channels as it is described in next line
     input_channels, input_width, input_height = data.shape
 
-    # calculate grad of loss wrt conv weights
+    # calculate derivative of loss wrt conv weights, conv equation for 1 filter is output = w.T@x+b
     dL_dW = np.zeros((conv_channels,input_channels,conv_width,conv_height))
+    
     for x in range(input_width - conv_width + 1):
         for y in range(input_height - conv_height + 1):
             for output_channel in range(conv_channels): # 
-                dC_dW = data[:, x:(x + conv_width), y:(y + conv_height)] #deriv of conv wrt W at output channel
+                
+                dC_dW = data[:, x:(x + conv_width), y:(y + conv_height)] #deriv of conv wrt W at output channel is x volume
                 dL_dC = output_grad[output_channel,x,y] # scalar value
-                dL_dW = dL_dC*dC_dW # elementwise mult of dC_dW
+                
+                # Calculate gradient for this patch and accumulate it into the dL_dW tensor
+                dL_dW[output_channel] += dL_dC*dC_dW #accumulation, as there is overlap during conv
+                
+                # Assertions for dimensional consistency
                 assert(dC_dW.shape == (input_channels, conv_width, conv_height))
-                assert(dL_dW.shape == (input_channels,conv_width,conv_height))
-                dL_dW = [output_channel] = dL_dW
-    return (dL_dW)
+                assert(dL_dW[output_channel].shape == (input_channels,conv_width,conv_height)) 
+    
+    # derivative of loss with respect to bias
+    dL_db = np.zeros(conv_channels)
+
+    for x in range(input_width - conv_width + 1):
+        for y in range(input_height - conv_height + 1):
+            for output_channel in range(conv_channels):
+                dL_db[output_channel] +=  1*output_grad[output_channel,x,y] # 1 is deriv output wrt bias
+    
+    # derivative of loss with respect to data***
+    dL_dData = np.zeros(input_channels,input_width,input_height)
+    for x in range(input_width - conv_width + 1):
+        for y in range(input_height - conv_height + 1):
+            for output_channel in range(conv_channels):
+                #check this term, understand this term!
+                dL_dData[:, x:(x + conv_width), y:(y + conv_height)] += output_grad[output_channel, x, y] * conv_W[output_channel, :, :, :]
+    
+    # calculate derivative of loss wrt to convolution bias
+    return (dL_dW, dL_db,dL_dData)
     # *** END CODE HERE ***
 
 def forward_max_pool(data, pool_width, pool_height):
