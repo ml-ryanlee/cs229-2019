@@ -160,9 +160,21 @@ def backward_convolution(conv_W, conv_b, data, output_grad):
     """
 
     # *** START CODE HERE ***
-    grad_w = 
-    grad_b = 
-    grad_data = 
+    conv_channels, _, conv_width, conv_height = conv_W.shape # don't save input_channels as it is described in next line
+    input_channels, input_width, input_height = data.shape
+
+    # calculate grad of loss wrt conv weights
+    dL_dW = np.zeros((conv_channels,input_channels,conv_width,conv_height))
+    for x in range(input_width - conv_width + 1):
+        for y in range(input_height - conv_height + 1):
+            for output_channel in range(conv_channels): # 
+                dC_dW = data[:, x:(x + conv_width), y:(y + conv_height)] #deriv of conv wrt W at output channel
+                dL_dC = output_grad[output_channel,x,y] # scalar value
+                dL_dW = dL_dC*dC_dW # elementwise mult of dC_dW
+                assert(dC_dW.shape == (input_channels, conv_width, conv_height))
+                assert(dL_dW.shape == (input_channels,conv_width,conv_height))
+                dL_dW = [output_channel] = dL_dW
+    return (dL_dW)
     # *** END CODE HERE ***
 
 def forward_max_pool(data, pool_width, pool_height):
@@ -274,18 +286,22 @@ def backward_linear(weights, bias, data, output_grad):
     """
 
     # *** START CODE HERE ***
+    # channels, width, height
     n,d = weights.shape
+    
     D_w = np.tile(data.reshape(n,1),d)      # deriv Z w.r.t W. result is (n,d) shape
-    grad_w = output_grad*D_w                # output_grad broadcast to (1,d) and multiplied across rows
-    
+    dL_dW = output_grad*D_w                # output_grad broadcast to (1,d) and multiplied across rows
+    assert(dL_dW.shape == (n,d))
+
     d_b = np.ones(len(bias))                # deriv Z w.r.t b, result is (d,)     
-    grad_b = output_grad*d_b              
-    
+    dL_db = output_grad*d_b              
+    assert(dL_db.shape == (d,))
+
     D_data = weights                        # deriv Z w.r.t data, result is (n,d) as partial wrt. vec of vec is matrix
-    grad_data = D_data@output_grad
+    dL_dData = D_data@output_grad
+    assert(dL_dData.shape == (n,))
 
-
-    return (grad_w, grad_b, grad_data)
+    return (dL_dW, dL_db, dL_dData)
     # *** END CODE HERE ***
 
 def forward_prop(data, labels, params):
