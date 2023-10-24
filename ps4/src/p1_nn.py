@@ -189,11 +189,11 @@ def backward_convolution(conv_W, conv_b, data, output_grad):
                 dL_db[output_channel] +=  1*output_grad[output_channel,x,y] # 1 is deriv output wrt bias
     
     # derivative of loss with respect to data***
-    dL_dData = np.zeros(input_channels,input_width,input_height)
+    dL_dData = np.zeros((input_channels,input_width,input_height))
     for x in range(input_width - conv_width + 1):
         for y in range(input_height - conv_height + 1):
             for output_channel in range(conv_channels):
-                #check this term, understand this term!
+                #Data[:, x:(x + conv_width), y:(y + conv_height)] is data volume of conv
                 dL_dData[:, x:(x + conv_width), y:(y + conv_height)] += output_grad[output_channel, x, y] * conv_W[output_channel, :, :, :]
     
     # calculate derivative of loss wrt to convolution bias
@@ -240,6 +240,30 @@ def backward_max_pool(data, pool_width, pool_height, output_grad):
     """
     
     # *** START CODE HERE ***
+    input_channels, input_width, input_height = data.shape
+    grad_data = np.zeros((input_channels, input_width, input_height))
+
+    #output = np.zeros((input_channels, input_width // pool_width, input_height // pool_height))
+
+    for x in range(0, input_width, pool_width):
+        for y in range(0, input_height, pool_height):
+            # extract pooling patch
+            pooling_patch = data[:, x:(x + pool_width), y:(y + pool_height)]
+
+            # extract the max value of pooling patch
+            max_val = np.amax(pooling_patch, axis=(1, 2))
+            max_val_reshaped = max_val[:, np.newaxis, np.newaxis]   # for broadcast, max_val is (input_chanels,)
+            
+            # create an indicator mask (1 where max value is)
+            dP_dData = (pooling_patch == max_val_reshaped).astype(int)
+            
+            # dL/dPool is a scalar at output_grad at x//pool_width, y//pool_height
+            dL_dP = output_grad[:, x // pool_width, y // pool_height] 
+
+            # calculate the grad of loss wrt to data
+            grad_data[:, x:(x + pool_width), y:(y + pool_height)] = dL_dP*dP_dData
+
+    return grad_data
     # *** END CODE HERE ***
 
 def forward_cross_entropy_loss(probabilities, labels):
@@ -384,6 +408,47 @@ def backward_prop(data, labels, params):
     """
 
     # *** START CODE HERE ***
+    # Since this implementation of forward pass does not store intermediate values or activations
+    # we need to re-run the forward pass to do backprop
+    W1 = params['W1']
+    b1 = params['b1']
+    W2 = params['W2']
+    b2 = params['b2']
+
+    first_convolution = forward_convolution(W1, b1, data)
+    first_max_pool = forward_max_pool(first_convolution, MAX_POOL_SIZE, MAX_POOL_SIZE)
+    first_after_relu = forward_relu(first_max_pool) # RELU 
+
+    flattened = np.reshape(first_after_relu, (-1)) 
+    
+    logits = forward_linear(W2, b2, flattened) # coverd
+
+    y = forward_softmax(logits)                  # covered
+    cost = forward_cross_entropy_loss(y, labels) # covered
+
+    # IMPLEMENT BACKPROPOGATION
+    grads = {}
+
+    # 1. get grad of cost
+    dL_dC = backward_cross_entropy_loss(y, labels)      # y after softmax is probabilities
+
+    # 2. get grad of softmax. Problem, need x, which is the logits
+    dL_dS = backward_softmax(logits, dL_dC)             # logits are (k,) size
+    
+    # 3. get grad of forward_linear for fully connected layer (FC)
+    (grads['W2'], grads['b2'], dL_dData) = backward_linear(W2, b2, data, dL_dS)
+
+    # 4. get grad of RELU layer
+    # Does dL_dData need to be reshaped here?
+    dL_dData = dL_dData.reshape((first_after_relu.shape))
+    dL_drelu = backward_relu(first_max_pool, dL_dData) # x is input to RELU, grad_output.
+
+    # 5. get grad of Pool layer with backprop
+    dL_dPool = backward_max_pool(data, MAX_POOL_SIZE, MAX_POOL_SIZE, dL_drelu)
+
+    # 6. get grad of Conv Layer with backprop
+    (grads['W1'], grads['b1'],_) = backward_convolution(W1, b1, data, dL_dPool)
+
     # *** END CODE HERE ***
 
 def forward_prop_batch(batch_data, batch_labels, params, forward_prop_func):
@@ -467,7 +532,7 @@ def nn_train(
     return params, cost_dev, accuracy_dev
 
 def nn_test(data, labels, params):
-    output, cost = forward_pr(data, labels, params)
+    output, cost = forward_prop(data, labels, params) # MODIFIED, forward_pr not valid
     accuracy = compute_accuracy(output, labels)
     return accuracy
 
