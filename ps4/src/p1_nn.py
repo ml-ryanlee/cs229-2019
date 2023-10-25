@@ -508,7 +508,7 @@ def nn_train(
             output, cost = forward_prop_batch(dev_data, dev_labels, params, forward_prop_func)
             cost_dev.append(sum(cost) / len(cost))
             accuracy_dev.append(compute_accuracy(output, dev_labels))
-
+            print('W1',params['W1'], 'b1:',params['b1'],' W2:',params['W2'], 'b2:',params['b2'])
             print('Cost and accuracy', cost_dev[-1], accuracy_dev[-1])
 
         gradient_descent_batch(batch_data, batch_labels,
